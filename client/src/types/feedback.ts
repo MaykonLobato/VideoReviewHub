@@ -5,6 +5,7 @@ export interface Feedback {
   videoTitle: string;
   comment: string;
   isRead: boolean;
+  isArchived: boolean;
   createdAt: Date;
 }
 

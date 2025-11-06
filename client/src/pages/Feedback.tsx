@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApp } from '@/contexts/AppContext';
 import { translations } from '@/lib/i18n';
@@ -8,12 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { MessageSquare, Send } from 'lucide-react';
+import { MessageSquare, Send, ArrowLeft, LogOut } from 'lucide-react';
 import { createFeedback } from '@/lib/firestore';
 import type { InsertFeedback } from '@/types/feedback';
 
 export default function Feedback() {
-  const { user } = useAuth();
+  const [location, setLocation] = useLocation();
+  const { user, signOut } = useAuth();
   const { language } = useApp();
   const t = translations[language];
   const { toast } = useToast();
@@ -22,9 +24,18 @@ export default function Feedback() {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Pre-fill video title from URL query parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const titleParam = urlParams.get('videoTitle');
+    if (titleParam) {
+      setVideoTitle(decodeURIComponent(titleParam));
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) return;
     if (!videoTitle.trim() || !comment.trim()) {
       toast({
@@ -51,7 +62,7 @@ export default function Feedback() {
         title: 'Success',
         description: 'Your feedback has been submitted!',
       });
-      
+
       setVideoTitle('');
       setComment('');
     } catch (error) {
@@ -69,6 +80,29 @@ export default function Feedback() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-12 px-4">
       <div className="max-w-3xl mx-auto">
+        <div className="mb-6 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={() => setLocation('/')}
+            className="gap-2"
+            data-testid="button-back-home"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Button>
+          {user && (
+            <Button
+              variant="outline"
+              onClick={signOut}
+              className="gap-2"
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          )}
+        </div>
+
         <div className="text-center mb-8">
           <MessageSquare className="h-16 w-16 mx-auto mb-4 text-primary" />
           <h1 className="text-4xl font-bold mb-2">Share Your Feedback</h1>

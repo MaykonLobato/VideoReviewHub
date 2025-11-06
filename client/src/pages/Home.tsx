@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import FilterBar, { type FilterState } from '@/components/FilterBar';
@@ -10,64 +9,38 @@ import ThemeSelector from '@/components/ThemeSelector';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getVideos, createVideo, updateVideo, toggleVideoVisibility, type Video } from '@/lib/firestore';
+import { createVideo, updateVideo, toggleVideoVisibility } from '@/lib/firestore';
+import type { Video, CreateVideoInput, UpdateVideoInput } from '@/types/video';
 import { useToast } from '@/hooks/use-toast';
+import { useVideos } from '@/hooks/use-videos';
 
 export default function Home() {
   const { user, isAdmin } = useAuth();
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { videos, isLoading, loadVideos } = useVideos();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({ sortBy: 'newest' });
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
 
-  useEffect(() => {
-    if (user && !isAdmin) {
-      setLocation('/feedback');
-    }
-  }, [user, isAdmin, setLocation]);
-
-  useEffect(() => {
-    loadVideos();
-  }, []);
-
-  const loadVideos = async () => {
-    try {
-      const data = await getVideos();
-      setVideos(data);
-    } catch (error) {
-      console.error('Error loading videos:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load videos. Please refresh the page.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAddVideo = async (videoData: any) => {
+  const handleAddVideo = async (videoData: CreateVideoInput | UpdateVideoInput) => {
     try {
       if (editingVideo) {
         // Update existing video
-        await updateVideo(editingVideo.id, videoData);
+        await updateVideo(editingVideo.id, videoData as UpdateVideoInput);
         toast({
           title: 'Success',
           description: 'Video updated successfully!',
         });
       } else {
         // Create new video
-        await createVideo(videoData);
+        await createVideo(videoData as CreateVideoInput);
         toast({
           title: 'Success',
           description: 'Video added successfully!',
         });
       }
-      
+
       await loadVideos();
       setShowAdminPanel(false);
       setEditingVideo(null);
@@ -148,13 +121,13 @@ export default function Home() {
 
       // 2. Sponsored videos next (gold > silver > bronze)
       if (a.isSponsored !== b.isSponsored) return a.isSponsored ? -1 : 1;
-      
+
       if (a.isSponsored && b.isSponsored) {
         const ribbonOrder = { gold: 1, silver: 2, bronze: 3 };
         const aOrder = ribbonOrder[a.ribbonColor as keyof typeof ribbonOrder] || 4;
         const bOrder = ribbonOrder[b.ribbonColor as keyof typeof ribbonOrder] || 4;
         if (aOrder !== bOrder) return aOrder - bOrder;
-        
+
         // Within same sponsor tier, sort by rating
         return b.rating - a.rating;
       }
@@ -209,10 +182,11 @@ export default function Home() {
           ) : filteredVideos.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
               {filteredVideos.map((video) => (
-                <VideoCard 
-                  key={video.id} 
-                  {...video} 
+                <VideoCard
+                  key={video.id}
+                  {...video}
                   isAdmin={isAdmin}
+                  isAuthenticated={!!user}
                   onEdit={handleEditVideo}
                   onToggleVisibility={handleToggleVisibility}
                 />

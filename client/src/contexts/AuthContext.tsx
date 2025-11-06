@@ -1,11 +1,12 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { 
-  User, 
-  onAuthStateChanged, 
-  signInWithPopup, 
+import {
+  User,
+  onAuthStateChanged,
+  signInWithPopup,
   signOut as firebaseSignOut,
 } from 'firebase/auth';
-import { auth, googleProvider, ADMIN_EMAIL } from '@/lib/firebase';
+import { auth, googleProvider } from '@/lib/firebase';
+import { ADMIN_EMAIL } from '@/lib/constants';
 
 interface AuthContextType {
   user: User | null;

@@ -2,8 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin, X } from 'lucide-react';
-import type { Location } from '@/lib/firestore';
+import type { Location } from '@/types/video';
 import { loadGoogleMaps } from '@/lib/google-maps-loader';
+import type {
+  GoogleMapsPlacesLibrary,
+  GoogleMapsSessionToken,
+  GoogleMapsAutocompleteSuggestion
+} from '@/types/google-maps';
 
 interface LocationInputProps {
   value: Location | null;
@@ -13,12 +18,12 @@ interface LocationInputProps {
 export default function LocationInput({ value, onChange }: LocationInputProps) {
   const [inputValue, setInputValue] = useState(value?.name || '');
   const [isLoaded, setIsLoaded] = useState(false);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<GoogleMapsAutocompleteSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  
+
   // Cache the imported Places library and session token
-  const placesLibRef = useRef<any>(null);
-  const sessionTokenRef = useRef<any>(null);
+  const placesLibRef = useRef<GoogleMapsPlacesLibrary | null>(null);
+  const sessionTokenRef = useRef<GoogleMapsSessionToken | null>(null);
 
   useEffect(() => {
     loadGoogleMaps(async () => {
@@ -26,11 +31,11 @@ export default function LocationInput({ value, onChange }: LocationInputProps) {
         // Import and cache the Places library
         // @ts-ignore - importLibrary is available after loading
         placesLibRef.current = await google.maps.importLibrary('places');
-        
+
         // Create and cache session token
         const { AutocompleteSessionToken } = placesLibRef.current;
         sessionTokenRef.current = new AutocompleteSessionToken();
-        
+
         setIsLoaded(true);
         console.log('[LocationInput] Google Maps Places library loaded successfully');
       } catch (error) {
@@ -42,7 +47,7 @@ export default function LocationInput({ value, onChange }: LocationInputProps) {
   const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
-    
+
     // Clear location if user manually changes the input
     if (value && newValue !== value.name) {
       onChange(null);
@@ -52,7 +57,7 @@ export default function LocationInput({ value, onChange }: LocationInputProps) {
     if (newValue.trim().length >= 3 && isLoaded && placesLibRef.current) {
       try {
         const { AutocompleteSuggestion } = placesLibRef.current;
-        
+
         const { suggestions: fetchedSuggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
           input: newValue,
           sessionToken: sessionTokenRef.current,
@@ -71,12 +76,12 @@ export default function LocationInput({ value, onChange }: LocationInputProps) {
     }
   };
 
-  const handleSelectSuggestion = async (suggestion: any) => {
+  const handleSelectSuggestion = async (suggestion: GoogleMapsAutocompleteSuggestion) => {
     if (!placesLibRef.current) return;
-    
+
     try {
       const placePrediction = suggestion.placePrediction;
-      
+
       // Fetch full place details
       const place = await placePrediction.toPlace();
       await place.fetchFields({
@@ -94,7 +99,7 @@ export default function LocationInput({ value, onChange }: LocationInputProps) {
       onChange(location);
       setShowSuggestions(false);
       setSuggestions([]);
-      
+
       // Reset session token after selection for billing optimization
       const { AutocompleteSessionToken } = placesLibRef.current;
       sessionTokenRef.current = new AutocompleteSessionToken();
@@ -141,14 +146,14 @@ export default function LocationInput({ value, onChange }: LocationInputProps) {
             <X className="h-4 w-4" />
           </button>
         )}
-        
+
         {showSuggestions && suggestions.length > 0 && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
             {suggestions.map((suggestion, index) => {
               const placePrediction = suggestion.placePrediction;
               const mainText = placePrediction.mainText?.text || '';
               const secondaryText = placePrediction.secondaryText?.text || '';
-              
+
               return (
                 <button
                   key={index}

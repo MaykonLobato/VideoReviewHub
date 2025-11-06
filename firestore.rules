@@ -1,0 +1,42 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Função helper para verificar se é admin
+    function isAdmin() {
+      return request.auth != null &&
+             request.auth.token.email == 'maykon.clobato@gmail.com';
+    }
+
+    // Vídeos: leitura pública (apenas públicos), escrita apenas para admin
+    match /videos/{videoId} {
+      // Leitura: qualquer um pode ler vídeos públicos (incluindo não autenticados)
+      // Admin pode ler todos (incluindo privados)
+      // Esta regra funciona tanto para get() quanto para queries com where()
+      allow read: if resource.data.isPublic == true || isAdmin();
+
+      // Escrita: apenas admin
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Feedbacks: apenas admin pode ler, qualquer autenticado pode escrever
+    match /feedbacks/{feedbackId} {
+      // Leitura: apenas admin
+      allow read: if isAdmin();
+
+      // Escrita: qualquer usuário autenticado pode criar feedback
+      allow create: if request.auth != null;
+
+      // Atualização (marcar como lido): apenas admin
+      allow update: if isAdmin();
+    }
+
+    // Tags: leitura pública, escrita apenas para admin
+    match /tags/{tagId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
+

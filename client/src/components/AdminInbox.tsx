@@ -1,32 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Mail, MailOpen, Loader2 } from 'lucide-react';
+import { Mail, MailOpen, Loader2, Archive } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { getFeedbacks, markFeedbackAsRead } from '@/lib/firestore';
-import type { Feedback } from '@/types/feedback';
+import { markFeedbackAsRead, archiveFeedback } from '@/lib/firestore';
+import { useFeedbacks } from '@/hooks/use-feedbacks';
 
 export default function AdminInbox() {
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { feedbacks, isLoading, loadFeedbacks, unreadCount } = useFeedbacks(false);
   const [markingAsRead, setMarkingAsRead] = useState<string | null>(null);
-
-  const loadFeedbacks = async () => {
-    try {
-      const data = await getFeedbacks();
-      setFeedbacks(data);
-    } catch (error) {
-      console.error('Error loading feedbacks:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadFeedbacks();
-  }, []);
+  const [archiving, setArchiving] = useState<string | null>(null);
 
   const handleMarkAsRead = async (id: string) => {
     setMarkingAsRead(id);
@@ -40,7 +25,18 @@ export default function AdminInbox() {
     }
   };
 
-  const unreadCount = feedbacks.filter(f => !f.isRead).length;
+  const handleArchive = async (id: string) => {
+    setArchiving(id);
+    try {
+      await archiveFeedback(id);
+      await loadFeedbacks(); // Reload to remove from inbox
+    } catch (error) {
+      console.error('Error archiving feedback:', error);
+    } finally {
+      setArchiving(null);
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -76,8 +72,8 @@ export default function AdminInbox() {
       <ScrollArea className="h-[600px] pr-4">
         <div className="space-y-3">
           {feedbacks.map((feedback) => (
-            <Card 
-              key={feedback.id} 
+            <Card
+              key={feedback.id}
               className={`transition-all ${!feedback.isRead ? 'bg-primary/5 border-primary/30' : ''}`}
               data-testid={`feedback-${feedback.id}`}
             >
@@ -94,17 +90,30 @@ export default function AdminInbox() {
                       {feedback.userEmail} • {formatDistanceToNow(new Date(feedback.createdAt), { addSuffix: true })}
                     </CardDescription>
                   </div>
-                  {!feedback.isRead && (
+                  <div className="flex gap-2">
+                    {!feedback.isRead && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleMarkAsRead(feedback.id)}
+                        disabled={markingAsRead === feedback.id}
+                        data-testid={`button-mark-read-${feedback.id}`}
+                        title="Mark as read"
+                      >
+                        <MailOpen className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => handleMarkAsRead(feedback.id)}
-                      disabled={markingAsRead === feedback.id}
-                      data-testid={`button-mark-read-${feedback.id}`}
+                      onClick={() => handleArchive(feedback.id)}
+                      disabled={archiving === feedback.id}
+                      data-testid={`button-archive-${feedback.id}`}
+                      title="Archive"
                     >
-                      <MailOpen className="h-4 w-4" />
+                      <Archive className="h-4 w-4" />
                     </Button>
-                  )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">

@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Star, Pin, Edit, MapPin, Play, Eye, EyeOff } from 'lucide-react';
+import { useLocation } from 'wouter';
+import { Star, Pin, Edit, MapPin, Play, Eye, EyeOff, MessageSquare } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/contexts/AppContext';
 import { translations } from '@/lib/i18n';
-import type { Location } from '@/lib/firestore';
+import type { Location } from '@/types/video';
 
 interface VideoCardProps {
   id: string;
@@ -20,6 +21,7 @@ interface VideoCardProps {
   isPublic: boolean;
   location?: Location;
   isAdmin?: boolean;
+  isAuthenticated?: boolean;
   onEdit?: (id: string) => void;
   onToggleVisibility?: (id: string, isPublic: boolean) => void;
 }
@@ -37,9 +39,11 @@ export default function VideoCard({
   isPublic,
   location,
   isAdmin = false,
+  isAuthenticated = false,
   onEdit,
   onToggleVisibility,
 }: VideoCardProps) {
+  const [, setLocation] = useLocation();
   const { language } = useApp();
   const t = translations[language];
   const [isPlaying, setIsPlaying] = useState(false);
@@ -80,6 +84,12 @@ export default function VideoCard({
   const handlePlayVideo = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsPlaying(true);
+  };
+
+  const handleSendFeedback = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const encodedTitle = encodeURIComponent(title);
+    setLocation(`/feedback?videoTitle=${encodedTitle}`);
   };
 
   return (
@@ -190,14 +200,29 @@ export default function VideoCard({
         </div>
 
         {location && (
-          <div 
-            className="mt-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors" 
+          <div
+            className="mt-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
             onClick={openInGoogleMaps}
             data-testid="button-open-maps"
             title="Abrir no Google Maps"
           >
             <MapPin className="h-4 w-4" />
             <span>{location.name}</span>
+          </div>
+        )}
+
+        {isAuthenticated && !isAdmin && (
+          <div className="mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={handleSendFeedback}
+              data-testid="button-send-feedback"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Send Feedback
+            </Button>
           </div>
         )}
       </div>

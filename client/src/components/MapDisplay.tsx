@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { MapPin } from 'lucide-react';
-import type { Location } from '@/lib/firestore';
+import type { Location } from '@/types/video';
 import { loadGoogleMaps } from '@/lib/google-maps-loader';
 
 interface MapDisplayProps {
