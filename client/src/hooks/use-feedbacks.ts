@@ -1,26 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getFeedbacks } from '@/lib/firestore';
 import type { Feedback } from '@/types/feedback';
 
 export function useFeedbacks(includeArchived: boolean = false) {
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const loadFeedbacks = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const data = await getFeedbacks(includeArchived);
-      setFeedbacks(data);
-    } catch (error) {
-      console.error('Error loading feedbacks:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [includeArchived]);
+  const {
+    data: feedbacks = [],
+    isLoading,
+  } = useQuery<Feedback[]>({
+    queryKey: ['feedbacks', includeArchived],
+    queryFn: () => getFeedbacks(includeArchived),
+    staleTime: 2 * 60 * 1000, // 2 minutes - feedbacks change more frequently
+  });
 
-  useEffect(() => {
-    loadFeedbacks();
-  }, [loadFeedbacks]);
+  const loadFeedbacks = () => {
+    queryClient.invalidateQueries({ queryKey: ['feedbacks'] });
+  };
 
   const unreadCount = feedbacks.filter(f => !f.isRead && !f.isArchived).length;
 

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/contexts/AppContext';
 import { translations } from '@/lib/i18n';
+import { getYouTubeId, getYouTubeThumbnail, getYouTubeEmbedUrl } from '@/lib/video-utils';
 import type { Location } from '@/types/video';
 
 interface VideoCardProps {
@@ -48,14 +49,9 @@ export default function VideoCard({
   const t = translations[language];
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const getYouTubeId = (url: string) => {
-    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
-    return match?.[1] || '';
-  };
-
   const videoId = getYouTubeId(youtubeUrl);
-  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+  const thumbnailUrl = getYouTubeThumbnail(videoId);
+  const embedUrl = getYouTubeEmbedUrl(videoId);
 
   const ribbonColors = {
     gold: 'bg-gradient-to-r from-yellow-400 to-yellow-600',

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import FilterBar, { type FilterState } from '@/components/FilterBar';
@@ -9,7 +9,12 @@ import ThemeSelector from '@/components/ThemeSelector';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { createVideo, updateVideo, toggleVideoVisibility } from '@/lib/firestore';
+import {
+  createVideo,
+  updateVideo,
+  toggleVideoVisibility,
+} from '@/lib/firestore';
+import { filterAndSortVideos } from '@/lib/video-utils';
 import type { Video, CreateVideoInput, UpdateVideoInput } from '@/types/video';
 import { useToast } from '@/hooks/use-toast';
 import { useVideos } from '@/hooks/use-videos';
@@ -17,13 +22,26 @@ import { useVideos } from '@/hooks/use-videos';
 export default function Home() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
-  const { videos, isLoading, loadVideos } = useVideos();
+  const { videos, isLoading, loadVideos, error } = useVideos();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({ sortBy: 'newest' });
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
 
-  const handleAddVideo = async (videoData: CreateVideoInput | UpdateVideoInput) => {
+  // Show error toast if videos query fails
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load videos. Please refresh the page.',
+        variant: 'destructive',
+      });
+    }
+  }, [error, toast]);
+
+  const handleAddVideo = async (
+    videoData: CreateVideoInput | UpdateVideoInput
+  ) => {
     try {
       if (editingVideo) {
         // Update existing video
@@ -55,7 +73,7 @@ export default function Home() {
   };
 
   const handleEditVideo = (videoId: string) => {
-    const video = videos.find(v => v.id === videoId);
+    const video = videos.find((v) => v.id === videoId);
     if (video) {
       setEditingVideo(video);
       setShowAdminPanel(true);
@@ -68,7 +86,9 @@ export default function Home() {
       await loadVideos();
       toast({
         title: 'Sucesso',
-        description: isPublic ? 'Vídeo agora está visível ao público' : 'Vídeo ocultado do público',
+        description: isPublic
+          ? 'Vídeo agora está visível ao público'
+          : 'Vídeo ocultado do público',
       });
     } catch (error) {
       console.error('Error toggling video visibility:', error);
@@ -85,102 +105,56 @@ export default function Home() {
     setEditingVideo(null);
   };
 
-  const getAvailableSubTags = () => {
+  const getAvailableSubTags = useMemo(() => {
     const subTags = new Set<string>();
     videos
       .filter((v) => !filters.mainTag || v.mainTag === filters.mainTag)
       .forEach((v) => v.subTags.forEach((t) => subTags.add(t)));
     return Array.from(subTags);
-  };
+  }, [videos, filters.mainTag]);
 
-  const filteredVideos = videos
-    .filter((video) => {
-      // Filter out non-public videos for non-admin users
-      if (!isAdmin && !video.isPublic) return false;
-      return true;
-    })
-    .filter((video) => {
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        return (
-          video.title.toLowerCase().includes(query) ||
-          video.subTags.some((tag) => tag.toLowerCase().includes(query))
-        );
-      }
-      return true;
-    })
-    .filter((video) => {
-      if (filters.mainTag && video.mainTag !== filters.mainTag) return false;
-      if (filters.subTag && !video.subTags.includes(filters.subTag)) return false;
-      if (filters.rating && video.rating < filters.rating) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      // 1. Pinned videos first
-      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-
-      // 2. Sponsored videos next (gold > silver > bronze)
-      if (a.isSponsored !== b.isSponsored) return a.isSponsored ? -1 : 1;
-
-      if (a.isSponsored && b.isSponsored) {
-        const ribbonOrder = { gold: 1, silver: 2, bronze: 3 };
-        const aOrder = ribbonOrder[a.ribbonColor as keyof typeof ribbonOrder] || 4;
-        const bOrder = ribbonOrder[b.ribbonColor as keyof typeof ribbonOrder] || 4;
-        if (aOrder !== bOrder) return aOrder - bOrder;
-
-        // Within same sponsor tier, sort by rating
-        return b.rating - a.rating;
-      }
-
-      // 3. Apply user-selected sort for non-sponsored videos
-      switch (filters.sortBy) {
-        case 'newest':
-          return b.createdAt.getTime() - a.createdAt.getTime();
-        case 'oldest':
-          return a.createdAt.getTime() - b.createdAt.getTime();
-        case 'highestRated':
-          return b.rating - a.rating;
-        case 'lowestRated':
-          return a.rating - b.rating;
-        default:
-          return 0;
-      }
-    });
+  const filteredVideos = useMemo(
+    () => filterAndSortVideos(videos, filters, searchQuery, isAdmin),
+    [videos, filters, searchQuery, isAdmin]
+  );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className='min-h-screen bg-background'>
       <Navbar />
 
-      <div className="pt-16 md:pt-20">
+      <div className='pt-16 md:pt-20'>
         <Hero onSearch={setSearchQuery} />
 
-        <div className="py-4 px-4 md:px-8 max-w-7xl mx-auto flex justify-end">
+        <div className='py-4 px-4 md:px-8 max-w-7xl mx-auto flex justify-end'>
           <ThemeSelector />
         </div>
 
-        <FilterBar onFilterChange={setFilters} availableSubTags={getAvailableSubTags()} />
+        <FilterBar
+          onFilterChange={setFilters}
+          availableSubTags={getAvailableSubTags}
+        />
 
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-20">
+        <div className='max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-20'>
           {isAdmin && (
-            <div className="flex justify-center mb-8">
+            <div className='flex justify-center mb-8'>
               <Button
-                size="lg"
-                className="gap-2 shadow-lg"
+                size='lg'
+                className='gap-2 shadow-lg'
                 onClick={() => setShowAdminPanel(true)}
-                data-testid="button-add-video"
+                data-testid='button-add-video'
               >
-                <Plus className="h-5 w-5" />
+                <Plus className='h-5 w-5' />
                 Adicionar Vídeo
               </Button>
             </div>
           )}
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <div className='flex items-center justify-center py-20'>
+              <Loader2 className='h-12 w-12 animate-spin text-primary' />
             </div>
           ) : filteredVideos.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8'>
               {filteredVideos.map((video) => (
                 <VideoCard
                   key={video.id}

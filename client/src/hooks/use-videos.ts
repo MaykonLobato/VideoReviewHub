@@ -1,39 +1,27 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getVideos } from '@/lib/firestore';
 import type { Video } from '@/types/video';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function useVideos() {
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
   const { isAdmin, loading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
 
-  const loadVideos = useCallback(async () => {
-    // Wait for auth to finish loading before making the query
-    if (authLoading) return;
+  const {
+    data: videos = [],
+    isLoading,
+    error,
+  } = useQuery<Video[]>({
+    queryKey: ['videos', isAdmin],
+    queryFn: () => getVideos(isAdmin),
+    enabled: !authLoading, // Wait for auth to finish loading
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-    try {
-      setIsLoading(true);
-      const data = await getVideos(isAdmin);
-      setVideos(data);
-    } catch (error) {
-      console.error('Error loading videos:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load videos. Please refresh the page.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast, isAdmin, authLoading]);
+  const loadVideos = () => {
+    queryClient.invalidateQueries({ queryKey: ['videos'] });
+  };
 
-  useEffect(() => {
-    loadVideos();
-  }, [loadVideos]);
-
-  return { videos, isLoading, loadVideos };
+  return { videos, isLoading, loadVideos, error };
 }
 
