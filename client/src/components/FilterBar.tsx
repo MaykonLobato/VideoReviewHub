@@ -50,7 +50,7 @@ export default function FilterBar({ onFilterChange, availableSubTags }: FilterBa
   const activeFilterCount = [filters.mainTag, filters.subTag, filters.rating].filter(Boolean).length;
 
   return (
-    <div className="sticky top-[4rem] md:top-[5rem] z-40 bg-background/95 backdrop-blur-lg border-b shadow-sm">
+    <div className="sticky top-[4rem] md:top-[5rem] z-40 bg-background/95 backdrop-blur-lg border-b shadow-sm animate-in slide-in-from-top duration-300">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-4">
         <div className="flex items-center gap-3 flex-wrap">
           <Popover open={isOpen} onOpenChange={setIsOpen}>

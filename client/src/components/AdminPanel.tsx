@@ -15,12 +15,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { X, Plus, Inbox, Archive } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { translations } from '@/lib/i18n';
+import { isValidYouTubeUrl } from '@/lib/video-utils';
 import { Badge } from '@/components/ui/badge';
 import AdminInbox from '@/components/AdminInbox';
 import AdminArchived from '@/components/AdminArchived';
 import LocationInput from '@/components/LocationInput';
 import type { Video, Location, CreateVideoInput } from '@/types/video';
 import { useFeedbacks } from '@/hooks/use-feedbacks';
+import { useToast } from '@/hooks/use-toast';
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -36,6 +38,7 @@ export default function AdminPanel({
   const { language } = useApp();
   const t = translations[language];
   const { unreadCount } = useFeedbacks();
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     youtubeUrl: '',
@@ -84,6 +87,18 @@ export default function AdminPanel({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate YouTube URL
+    if (!isValidYouTubeUrl(formData.youtubeUrl)) {
+      toast({
+        title: '⚠️ URL Inválida',
+        description: 'Por favor, insira uma URL válida do YouTube',
+        variant: 'destructive',
+        duration: 3000,
+      });
+      return;
+    }
+
     // Convert null to undefined for location
     const submitData = {
       ...formData,
@@ -111,8 +126,8 @@ export default function AdminPanel({
   const submitButtonText = isEditing ? 'Update Video' : t.admin.submit;
 
   return (
-    <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4'>
-      <Card className='w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col'>
+    <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200'>
+      <Card className='w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-bottom-4 duration-300'>
         <div className='flex items-center justify-between p-6 border-b'>
           <h2 className='text-3xl font-bold' data-testid='text-admin-title'>
             {panelTitle}
@@ -171,10 +186,16 @@ export default function AdminPanel({
                   onChange={(e) =>
                     setFormData({ ...formData, youtubeUrl: e.target.value })
                   }
-                  placeholder='https://youtube.com/watch?v=...'
+                  placeholder='https://youtube.com/watch?v=... ou https://youtu.be/...'
                   required
+                  className={formData.youtubeUrl && !isValidYouTubeUrl(formData.youtubeUrl) ? 'border-destructive' : ''}
                   data-testid='input-youtube-url'
                 />
+                {formData.youtubeUrl && !isValidYouTubeUrl(formData.youtubeUrl) && (
+                  <p className="text-sm text-destructive mt-1">
+                    ⚠️ URL do YouTube inválida
+                  </p>
+                )}
               </div>
 
               <div>

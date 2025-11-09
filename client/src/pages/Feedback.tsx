@@ -39,9 +39,10 @@ export default function Feedback() {
     if (!user) return;
     if (!videoTitle.trim() || !comment.trim()) {
       toast({
-        title: 'Error',
-        description: 'Please fill in all fields',
+        title: '⚠️ Atenção',
+        description: 'Por favor, preencha todos os campos',
         variant: 'destructive',
+        duration: 3000,
       });
       return;
     }
@@ -59,18 +60,19 @@ export default function Feedback() {
       await createFeedback(feedbackData);
 
       toast({
-        title: 'Success',
-        description: 'Your feedback has been submitted!',
+        title: '✅ Obrigado!',
+        description: 'Seu feedback foi enviado com sucesso!',
+        duration: 4000,
       });
 
       setVideoTitle('');
       setComment('');
     } catch (error) {
-      console.error('Error submitting feedback:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to submit feedback. Please try again.',
+        title: '❌ Erro',
+        description: getUserFriendlyErrorMessage(error),
         variant: 'destructive',
+        duration: 5000,
       });
     } finally {
       setIsSubmitting(false);
@@ -111,7 +113,7 @@ export default function Feedback() {
           </p>
         </div>
 
-        <Card className="shadow-2xl">
+        <Card className="shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
           <CardHeader>
             <CardTitle>Submit Feedback</CardTitle>
             <CardDescription>

@@ -3,10 +3,22 @@ import type { Video } from '@/types/video';
 import type { FilterState } from '@/components/FilterBar';
 
 /**
+ * Validates if a URL is a valid YouTube URL
+ */
+export function isValidYouTubeUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const youtubeRegex =
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/;
+  return youtubeRegex.test(url.trim());
+}
+
+/**
  * Extracts YouTube video ID from various YouTube URL formats
  */
 export function getYouTubeId(url: string): string {
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+  const match = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/
+  );
   return match?.[1] || '';
 }
 
@@ -53,7 +65,8 @@ export function filterAndSortVideos(
     .filter((video) => {
       // Tag and rating filters
       if (filters.mainTag && video.mainTag !== filters.mainTag) return false;
-      if (filters.subTag && !video.subTags.includes(filters.subTag)) return false;
+      if (filters.subTag && !video.subTags.includes(filters.subTag))
+        return false;
       if (filters.rating && video.rating < filters.rating) return false;
       return true;
     })
@@ -66,8 +79,10 @@ export function filterAndSortVideos(
 
       if (a.isSponsored && b.isSponsored) {
         const ribbonOrder = { gold: 1, silver: 2, bronze: 3 };
-        const aOrder = ribbonOrder[a.ribbonColor as keyof typeof ribbonOrder] || 4;
-        const bOrder = ribbonOrder[b.ribbonColor as keyof typeof ribbonOrder] || 4;
+        const aOrder =
+          ribbonOrder[a.ribbonColor as keyof typeof ribbonOrder] || 4;
+        const bOrder =
+          ribbonOrder[b.ribbonColor as keyof typeof ribbonOrder] || 4;
         if (aOrder !== bOrder) return aOrder - bOrder;
 
         // Within same sponsor tier, sort by rating
@@ -89,4 +104,3 @@ export function filterAndSortVideos(
       }
     });
 }
-

@@ -3,11 +3,12 @@ import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import FilterBar, { type FilterState } from '@/components/FilterBar';
 import VideoCard from '@/components/VideoCard';
+import VideoCardSkeleton from '@/components/VideoCardSkeleton';
 import EmptyState from '@/components/EmptyState';
 import AdminPanel from '@/components/AdminPanel';
 import ThemeSelector from '@/components/ThemeSelector';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   createVideo,
@@ -47,15 +48,17 @@ export default function Home() {
         // Update existing video
         await updateVideo(editingVideo.id, videoData as UpdateVideoInput);
         toast({
-          title: 'Success',
-          description: 'Video updated successfully!',
+          title: '✅ Sucesso!',
+          description: 'Vídeo atualizado com sucesso!',
+          duration: 3000,
         });
       } else {
         // Create new video
         await createVideo(videoData as CreateVideoInput);
         toast({
-          title: 'Success',
-          description: 'Video added successfully!',
+          title: '✅ Sucesso!',
+          description: 'Vídeo adicionado com sucesso!',
+          duration: 3000,
         });
       }
 
@@ -63,11 +66,11 @@ export default function Home() {
       setShowAdminPanel(false);
       setEditingVideo(null);
     } catch (error) {
-      console.error('Error saving video:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to save video. Please try again.',
+        title: '❌ Erro',
+        description: getUserFriendlyErrorMessage(error),
         variant: 'destructive',
+        duration: 5000,
       });
     }
   };
@@ -85,17 +88,18 @@ export default function Home() {
       await toggleVideoVisibility(videoId, isPublic);
       await loadVideos();
       toast({
-        title: 'Sucesso',
+        title: '✅ Sucesso!',
         description: isPublic
           ? 'Vídeo agora está visível ao público'
           : 'Vídeo ocultado do público',
+        duration: 3000,
       });
     } catch (error) {
-      console.error('Error toggling video visibility:', error);
       toast({
-        title: 'Erro',
-        description: 'Falha ao alterar visibilidade. Tente novamente.',
+        title: '❌ Erro',
+        description: getUserFriendlyErrorMessage(error),
         variant: 'destructive',
+        duration: 5000,
       });
     }
   };
@@ -150,8 +154,10 @@ export default function Home() {
           )}
 
           {isLoading ? (
-            <div className='flex items-center justify-center py-20'>
-              <Loader2 className='h-12 w-12 animate-spin text-primary' />
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8'>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <VideoCardSkeleton key={i} />
+              ))}
             </div>
           ) : filteredVideos.length > 0 ? (
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8'>

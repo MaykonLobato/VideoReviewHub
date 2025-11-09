@@ -3,13 +3,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Mail, MailOpen, Loader2, Archive } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Mail, MailOpen, Archive } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { markFeedbackAsRead, archiveFeedback } from '@/lib/firestore';
+import { getUserFriendlyErrorMessage } from '@/lib/error-handler';
 import { useFeedbacks } from '@/hooks/use-feedbacks';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminInbox() {
   const { feedbacks, isLoading, loadFeedbacks, unreadCount } = useFeedbacks(false);
+  const { toast } = useToast();
   const [markingAsRead, setMarkingAsRead] = useState<string | null>(null);
   const [archiving, setArchiving] = useState<string | null>(null);
 
@@ -19,7 +23,12 @@ export default function AdminInbox() {
       await markFeedbackAsRead(id);
       await loadFeedbacks(); // Reload to show updated status
     } catch (error) {
-      console.error('Error marking as read:', error);
+      toast({
+        title: '❌ Erro',
+        description: getUserFriendlyErrorMessage(error),
+        variant: 'destructive',
+        duration: 3000,
+      });
     } finally {
       setMarkingAsRead(null);
     }
@@ -31,7 +40,12 @@ export default function AdminInbox() {
       await archiveFeedback(id);
       await loadFeedbacks(); // Reload to remove from inbox
     } catch (error) {
-      console.error('Error archiving feedback:', error);
+      toast({
+        title: '❌ Erro',
+        description: getUserFriendlyErrorMessage(error),
+        variant: 'destructive',
+        duration: 3000,
+      });
     } finally {
       setArchiving(null);
     }
@@ -40,8 +54,23 @@ export default function AdminInbox() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-6 w-24" />
+        </div>
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="p-6">
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-1/3" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -71,10 +100,11 @@ export default function AdminInbox() {
 
       <ScrollArea className="h-[600px] pr-4">
         <div className="space-y-3">
-          {feedbacks.map((feedback) => (
+          {feedbacks.map((feedback, index) => (
             <Card
               key={feedback.id}
-              className={`transition-all ${!feedback.isRead ? 'bg-primary/5 border-primary/30' : ''}`}
+              className={`transition-all animate-in fade-in slide-in-from-right-4 duration-300 ${!feedback.isRead ? 'bg-primary/5 border-primary/30' : ''}`}
+              style={{ animationDelay: `${index * 50}ms` }}
               data-testid={`feedback-${feedback.id}`}
             >
               <CardHeader className="pb-3">

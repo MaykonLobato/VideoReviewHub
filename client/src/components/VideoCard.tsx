@@ -89,7 +89,7 @@ export default function VideoCard({
   };
 
   return (
-    <Card className="overflow-hidden hover-elevate active-elevate-2 transition-all" data-testid="card-video">
+    <Card className="overflow-hidden hover-elevate active-elevate-2 transition-all animate-in fade-in slide-in-from-bottom-4 duration-500" data-testid="card-video">
       <div className="relative aspect-video">
         {isPlaying ? (
           <iframe
@@ -107,9 +107,9 @@ export default function VideoCard({
               className="w-full h-full object-cover"
               data-testid="img-thumbnail"
             />
-            <div className="absolute inset-0 hover:bg-black/50 transition-colors cursor-pointer group" onClick={handlePlayVideo} data-testid="button-play">
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="rounded-full bg-primary p-4 md:p-6 shadow-xl">
+            <div className="absolute inset-0 hover:bg-black/50 transition-all duration-300 cursor-pointer group" onClick={handlePlayVideo} data-testid="button-play">
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                <div className="rounded-full bg-primary p-4 md:p-6 shadow-xl transform scale-90 group-hover:scale-100 transition-transform duration-300">
                   <Play className="h-8 w-8 md:h-12 md:w-12 text-primary-foreground fill-current" />
                 </div>
               </div>
